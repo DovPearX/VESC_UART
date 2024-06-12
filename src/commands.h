@@ -23,7 +23,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "datatypes.h"
+#include "util/datatypes.h"
 
 // Private variables
 bms_values bms;

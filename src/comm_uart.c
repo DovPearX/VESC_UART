@@ -156,10 +156,6 @@ void comm_uart_send_packet(unsigned char *data, unsigned int len, int uart_num) 
 }
 
 void comm_uart_setup_communication(int uart_num){
-    if (m_state[uart_num] == NULL) {
-        m_state[uart_num] = malloc(sizeof(uart_state));
-        packet_init(&(m_state[uart_num]->packet_state));
-    }
-
+	
     commands_set_send_func((send_func_t)comm_uart_send_packet);
 }

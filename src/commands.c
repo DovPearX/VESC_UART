@@ -28,7 +28,7 @@
 #include "freertos/semphr.h"
 
 #include "commands.h"
-#include "datatypes.h"
+#include "util/datatypes.h"
 #include "util/mempools.h"
 #include "util/utils.h"
 
