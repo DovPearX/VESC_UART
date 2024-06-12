@@ -239,6 +239,7 @@ send_func_t commands_get_send_func(void) {
 }
 
 void commands_set_send_func(send_func_t func) {
+
 	send_func = func;
 }
 

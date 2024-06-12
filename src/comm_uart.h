@@ -23,7 +23,6 @@
 bool comm_uart_init(int pin_tx, int pin_rx, int uart_num, int baudrate);
 void comm_uart_stop(int uart_num);
 void comm_uart_send_packet(unsigned char *data, unsigned int len, int uart_num);
-void comm_uart_setup_communication(int uart_num);
 
 
 #endif /* MAIN_COMM_UART_H_ */

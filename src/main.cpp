@@ -2,26 +2,25 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-extern "C"{
-#include "commands.h"
-#include "comm_uart.h"
-#include "utils/mempools.h"
-}
+#include "vesc_uart.h"
+
+
 
 void setup() {
 
-    commands_init();
-    mempools_init();
+    Serial.begin(9600);
 
-    comm_uart_init(17,16,2,115200);
-    comm_uart_setup_communication(2);
+    vesc_uart_init(17, 16, 2, 115200);
+
 }
 
 void loop() {
 
     vTaskDelay(500);
+
     commands_get_vesc_values();
 
     Serial.println(values.v_in);    
 
 }
+
