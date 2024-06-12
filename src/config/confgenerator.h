@@ -3,7 +3,7 @@
 #ifndef CONFGENERATOR_H_
 #define CONFGENERATOR_H_
 
-#include "util/datatypes.h"
+#include "utils/datatypes.h"
 #include <stdint.h>
 #include <stdbool.h>
 
