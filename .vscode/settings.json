@@ -9,6 +9,7 @@
         "string": "c",
         "string_view": "c",
         "mempools.h": "c",
-        "datatypes.h": "c"
+        "datatypes.h": "c",
+        "buffer.h": "c"
     }
 }

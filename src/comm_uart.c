@@ -19,7 +19,7 @@
 
 #include "commands.h"
 #include "comm_uart.h"
-#include "packet.h"
+#include "utils/packet.h"
 #include "driver/uart.h"
 #include <string.h>
 
@@ -68,6 +68,10 @@ static void send_packet_u1(unsigned char *data, unsigned int len) {
 	comm_uart_send_packet(data, len, 1);
 }
 
+static void send_packet_u2(unsigned char *data, unsigned int len) {
+	comm_uart_send_packet(data, len, 2);
+}
+
 static void process_packet_u0(unsigned char *data, unsigned int len) {
 	commands_process_packet(data, len, send_packet_u0);
 }
@@ -76,11 +80,19 @@ static void process_packet_u1(unsigned char *data, unsigned int len) {
 	commands_process_packet(data, len, send_packet_u1);
 }
 
+static void process_packet_u2(unsigned char *data, unsigned int len) {
+	commands_process_packet(data, len, send_packet_u2);
+}
+
 static void send_packet_raw_u0(unsigned char *buffer, unsigned int len) {
 	uart_write_bytes(0, buffer, len);
 }
 
 static void send_packet_raw_u1(unsigned char *buffer, unsigned int len) {
+	uart_write_bytes(1, buffer, len);
+}
+
+static void send_packet_raw_u2(unsigned char *buffer, unsigned int len) {
 	uart_write_bytes(1, buffer, len);
 }
 
@@ -156,6 +168,6 @@ void comm_uart_send_packet(unsigned char *data, unsigned int len, int uart_num) 
 }
 
 void comm_uart_setup_communication(int uart_num){
-	
+
     commands_set_send_func((send_func_t)comm_uart_send_packet);
 }

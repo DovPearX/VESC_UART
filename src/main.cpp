@@ -5,7 +5,7 @@
 extern "C"{
 #include "commands.h"
 #include "comm_uart.h"
-#include "util/mempools.h"
+#include "utils/mempools.h"
 }
 
 void setup() {

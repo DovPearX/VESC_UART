@@ -28,13 +28,13 @@
 #include "freertos/semphr.h"
 
 #include "commands.h"
-#include "util/datatypes.h"
-#include "util/mempools.h"
-#include "util/utils.h"
+#include "utils/datatypes.h"
+#include "utils/mempools.h"
+#include "utils/utils.h"
 
-#include "packet.h"
-#include "util/buffer.h"
-#include "util/crc.h"
+#include "utils/packet.h"
+#include "utils/buffer.h"
+#include "utils/crc.h"
 
 extern bms_values bms;
 extern mc_values values;
