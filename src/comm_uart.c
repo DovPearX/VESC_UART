@@ -19,7 +19,7 @@
 
 #include "commands.h"
 #include "comm_uart.h"
-#include "packet.h"
+#include "utils/packet.h"
 #include "driver/uart.h"
 #include <string.h>
 
@@ -68,6 +68,10 @@ static void send_packet_u1(unsigned char *data, unsigned int len) {
 	comm_uart_send_packet(data, len, 1);
 }
 
+static void send_packet_u2(unsigned char *data, unsigned int len) {
+	comm_uart_send_packet(data, len, 2);
+}
+
 static void process_packet_u0(unsigned char *data, unsigned int len) {
 	commands_process_packet(data, len, send_packet_u0);
 }
@@ -76,12 +80,20 @@ static void process_packet_u1(unsigned char *data, unsigned int len) {
 	commands_process_packet(data, len, send_packet_u1);
 }
 
+static void process_packet_u2(unsigned char *data, unsigned int len) {
+	commands_process_packet(data, len, send_packet_u2);
+}
+
 static void send_packet_raw_u0(unsigned char *buffer, unsigned int len) {
 	uart_write_bytes(0, buffer, len);
 }
 
 static void send_packet_raw_u1(unsigned char *buffer, unsigned int len) {
 	uart_write_bytes(1, buffer, len);
+}
+
+static void send_packet_raw_u2(unsigned char *buffer, unsigned int len) {
+	uart_write_bytes(2, buffer, len);
 }
 
 bool comm_uart_init(int pin_tx, int pin_rx, int uart_num, int baudrate) {
@@ -114,8 +126,10 @@ bool comm_uart_init(int pin_tx, int pin_rx, int uart_num, int baudrate) {
 
 	if (uart_num == 0) {
 		packet_init(send_packet_raw_u0, process_packet_u0, &(state->packet_state));
-	} else {
+	} else if (uart_num == 1) {
 		packet_init(send_packet_raw_u1, process_packet_u1, &(state->packet_state));
+	} else if (uart_num == 2) {
+		packet_init(send_packet_raw_u2, process_packet_u2, &(state->packet_state));
 	}
 
 	xTaskCreatePinnedToCore(rx_task, "uart_rx", 3072, state, 8, NULL, tskNO_AFFINITY);
@@ -145,17 +159,13 @@ void comm_uart_stop(int uart_num) {
 	if (uart_is_driver_installed(uart_num)) {
 		uart_driver_delete(uart_num);
 	}
-}
+} 
 
 void comm_uart_send_packet(unsigned char *data, unsigned int len, int uart_num) {
-	if (uart_num < 0 || uart_num >= UART_NUM_MAX || m_state[uart_num] == NULL) {
-		return;
-	}
+
+	uart_num = 2;
 
 	packet_send_packet(data, len, &(m_state[uart_num]->packet_state));
+
 }
 
-void comm_uart_setup_communication(int uart_num){
-	
-    commands_set_send_func((send_func_t)comm_uart_send_packet);
-}

@@ -18,8 +18,9 @@
     */
 
 #include <string.h>
+#include <stdio.h>
 #include "packet.h"
-#include "util/crc.h"
+#include "utils/crc.h"
 
 // Private functions
 static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
@@ -39,6 +40,7 @@ void packet_reset(PACKET_STATE_t *state) {
 }
 
 void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *state) {
+	
 	if (len == 0 || len > PACKET_MAX_PL_LEN) {
 		return;
 	}
