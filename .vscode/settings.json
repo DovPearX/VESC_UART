@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "packet.h": "c",
+        "random": "c",
+        "*.tcc": "c",
+        "streambuf": "c",
+        "system_error": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c"
+    }
+}
