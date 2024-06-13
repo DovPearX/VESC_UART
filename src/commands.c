@@ -197,7 +197,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	} break;
 
-	case COMM_GET_MCCONF_TEMP: { 
+	case COMM_GET_MCCONF_TEMP: {
 			int32_t ind = 0;
 
 			mcconf.l_current_min_scale 		= buffer_get_float32_auto(data, &ind); 	// mcconf->l_current_min_scale
@@ -213,8 +213,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			mcconf.si_motor_poles       = (uint8_t)data[ind++];                   // mcconf->si_motor_poles
 			mcconf.si_gear_ratio 	    = buffer_get_float32_auto(data, &ind); 	// mcconf->si_gear_ratio
 			mcconf.si_wheel_diameter 	= buffer_get_float32_auto(data, &ind); 	// mcconf->si_wheel_diameter
-	} break;
 
+	} break;
 
 	// Blocking commands
 	case COMM_TERMINAL_CMD:
@@ -320,7 +320,6 @@ void commands_get_vesc_values(int uart_num) {
 	uint8_t buffer[2];
 	buffer[ind++] = COMM_GET_VALUES;
 	buffer[ind++] = 0;
-	//commands_send_packet(buffer, ind);
 	comm_uart_send_packet(buffer, ind, uart_num);
 }
 
@@ -329,7 +328,6 @@ void commands_get_bms_values(int uart_num) {
 	uint8_t buffer[2];
 	buffer[ind++] = COMM_BMS_GET_VALUES;
 	buffer[ind++] = 0;
-	//commands_send_packet(buffer, ind);
 	comm_uart_send_packet(buffer, ind, uart_num);
 }
 
@@ -337,15 +335,10 @@ void commands_get_mcconf_temp(int uart_num) {
     int32_t ind = 0;
 	uint8_t buffer[4];
     buffer[ind++] = COMM_GET_MCCONF_TEMP;
-	//commands_send_packet(buffer, ind);
 	comm_uart_send_packet(buffer, ind, uart_num);
 }
 
-void commands_set_mcconf_temp(int store, int forward, int reply, int divide_by, int uart_num) {
-
-	if (mcconf.l_current_min_scale == 0) {
-        return;
-    }
+void commands_set_mcconf_temp(int store, int forward, int reply, int uart_num) {
 
     int32_t ind = 0;
 	uint8_t buffer[60];
@@ -355,7 +348,7 @@ void commands_set_mcconf_temp(int store, int forward, int reply, int divide_by, 
     buffer[ind++] = store; // 0 temporary - 1 store
     buffer[ind++] = forward; // forward can
     buffer[ind++] = reply; // reverse can
-    buffer[ind++] = divide_by; // divide by controllers
+    buffer[ind++] = 0; // divide by controllers
 
     buffer_append_float32_auto(buffer, mcconf.l_current_min_scale, &ind);
 	buffer_append_float32_auto(buffer, mcconf.l_current_max_scale, &ind);
@@ -368,6 +361,6 @@ void commands_set_mcconf_temp(int store, int forward, int reply, int divide_by, 
 	buffer_append_float32_auto(buffer, mcconf.l_in_current_min, &ind);
 	buffer_append_float32_auto(buffer, mcconf.l_in_current_max, &ind);
 
-    //commands_send_packet(buffer, ind);
 	comm_uart_send_packet(buffer, ind, uart_num);
+
 }
