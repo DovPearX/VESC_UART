@@ -12,7 +12,9 @@ void setup() {
 
     vesc_uart_init(17, 16, 2, 115200);
 
-    commands_get_mcconf_temp();
+    vTaskDelay(1000);
+
+    commands_get_mcconf_temp(2);
 
 }
 
@@ -20,10 +22,10 @@ void loop() {
 
     vTaskDelay(500);
 
-    commands_get_vesc_values();
+    commands_get_vesc_values(2);
 
     Serial.println(mcconf.l_current_min_scale);
-    Serial.println(mcconf.l_current_max_scale)
+    Serial.println(mcconf.l_current_max_scale);
     Serial.println(values.v_in);    
 
 }

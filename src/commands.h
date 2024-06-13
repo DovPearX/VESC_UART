@@ -48,9 +48,9 @@ void commands_plot_set_graph(int graph);
 void commands_send_plot_points(float x, float y);
 void commands_send_app_data(unsigned char *data, unsigned int len);
 
-void commands_get_vesc_values();
-void commands_get_bms_values();
-void commands_get_mcconf_temp();
-void commands_set_mcconf_temp(int store, int forward, int reply, int divide_by);
+void commands_get_vesc_values(int uart_num);
+void commands_get_bms_values(int uart_num);
+void commands_get_mcconf_temp(int uart_num);
+void commands_set_mcconf_temp(int store, int forward, int reply, int divide_by, int uart_num);
 
 #endif /* MAIN_COMMANDS_H_ */
