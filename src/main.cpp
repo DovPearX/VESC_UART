@@ -18,7 +18,7 @@ void loop() {
 
     vTaskDelay(500);
 
-    commands_get_vesc_values();
+    commands_get_vesc_values(2);
 
     Serial.println(values.v_in);    
 

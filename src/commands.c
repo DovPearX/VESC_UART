@@ -28,6 +28,7 @@
 #include "freertos/semphr.h"
 
 #include "commands.h"
+#include "comm_uart.h"
 #include "utils/datatypes.h"
 #include "utils/mempools.h"
 #include "utils/utils.h"
@@ -295,18 +296,20 @@ void commands_send_app_data(unsigned char *data, unsigned int len) {
 	mempools_free_packet_buffer(send_buffer_global);
 }
 
-void commands_get_vesc_values() {
+void commands_get_vesc_values(int uart_num) {
 	int ind = 0;
 	uint8_t buffer[2];
 	buffer[ind++] = COMM_GET_VALUES;
 	buffer[ind++] = 0;
-	commands_send_packet(buffer, ind);
+	//commands_send_packet(buffer, ind);
+	comm_uart_send_packet(buffer, ind, uart_num);
 }
 
-void commands_get_bms_values() {
+void commands_get_bms_values(int uart_num) {
 	int ind = 0;
 	uint8_t buffer[2];
 	buffer[ind++] = COMM_BMS_GET_VALUES;
 	buffer[ind++] = 0;
-	commands_send_packet(buffer, ind);
+	//commands_send_packet(buffer, ind, uart_num);
+	comm_uart_send_packet(buffer, ind, uart_num);
 }
