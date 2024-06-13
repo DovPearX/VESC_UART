@@ -12,15 +12,25 @@ void setup() {
 
     vesc_uart_init(17, 16, 2, 115200);
 
+    vTaskDelay(1000);
+
+    mcconf.l_current_min_scale = 0.5;
+    mcconf.l_current_max_scale = 0.2;
+
+    printf("SET l_current_min_scale: %.2f\n", mcconf.l_current_min_scale);
+    printf("SET l_current_max_scale: %.2f\n", mcconf.l_current_max_scale);
+
+    commands_set_mcconf_temp(0, 0, 0, 2);
+
 }
 
 void loop() {
 
     vTaskDelay(500);
 
-    commands_get_vesc_values();
+    commands_get_vesc_values(2);
 
-    Serial.println(values.v_in);    
+    //Serial.println(values.v_in);    
 
 }
 

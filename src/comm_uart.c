@@ -162,10 +162,10 @@ void comm_uart_stop(int uart_num) {
 } 
 
 void comm_uart_send_packet(unsigned char *data, unsigned int len, int uart_num) {
-
-	uart_num = 2;
+	if (uart_num < 0 || uart_num >= UART_NUM_MAX || m_state[uart_num] == NULL) {
+		return;
+	}
 
 	packet_send_packet(data, len, &(m_state[uart_num]->packet_state));
-
 }
 
