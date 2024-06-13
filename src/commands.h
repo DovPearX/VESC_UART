@@ -28,6 +28,7 @@
 // Private variables
 bms_values bms;
 mc_values values;
+mc_configuration mcconf;
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
@@ -49,5 +50,7 @@ void commands_send_app_data(unsigned char *data, unsigned int len);
 
 void commands_get_vesc_values();
 void commands_get_bms_values();
+void commands_get_mcconf_temp();
+void commands_set_mcconf_temp(int store, int forward, int reply, int divide_by);
 
 #endif /* MAIN_COMMANDS_H_ */

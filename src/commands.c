@@ -28,7 +28,6 @@
 #include "freertos/semphr.h"
 
 #include "commands.h"
-#include "comm_uart.h"
 #include "utils/datatypes.h"
 #include "utils/mempools.h"
 #include "utils/utils.h"
@@ -39,6 +38,7 @@
 
 extern bms_values bms;
 extern mc_values values;
+extern mc_configuration mcconf;
 
 // For double precision literals
 #define D(x) 						((double)x##L)
@@ -196,6 +196,24 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	} break;
 
+	case COMM_GET_MCCONF_TEMP: { 
+			int32_t ind = 0;
+
+			mcconf.l_current_min_scale 		= buffer_get_float32_auto(data, &ind); 	// mcconf->l_current_min_scale
+			mcconf.l_current_max_scale 		= buffer_get_float32_auto(data, &ind); 	// mcconf->l_current_max_scale
+			mcconf.l_min_erpm 		    = buffer_get_float32_auto(data, &ind); 	// mcconf->l_min_erpm
+			mcconf.l_max_erpm 	    	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_max_erpm
+			mcconf.l_min_duty 	    	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_min_duty
+			mcconf.l_max_duty 	    	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_max_duty
+			mcconf.l_watt_min 	    	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_watt_min
+			mcconf.l_watt_max 	    	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_watt_max
+			mcconf.l_in_current_min 	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_in_current_min
+			mcconf.l_in_current_max 	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_in_current_max
+			mcconf.si_motor_poles       = (uint8_t)data[ind++];                   // mcconf->si_motor_poles
+			mcconf.si_gear_ratio 	    = buffer_get_float32_auto(data, &ind); 	// mcconf->si_gear_ratio
+			mcconf.si_wheel_diameter 	= buffer_get_float32_auto(data, &ind); 	// mcconf->si_wheel_diameter
+	} break;
+
 
 	// Blocking commands
 	case COMM_TERMINAL_CMD:
@@ -296,20 +314,55 @@ void commands_send_app_data(unsigned char *data, unsigned int len) {
 	mempools_free_packet_buffer(send_buffer_global);
 }
 
-void commands_get_vesc_values(int uart_num) {
+void commands_get_vesc_values() {
 	int ind = 0;
 	uint8_t buffer[2];
 	buffer[ind++] = COMM_GET_VALUES;
 	buffer[ind++] = 0;
-	//commands_send_packet(buffer, ind);
-	comm_uart_send_packet(buffer, ind, uart_num);
+	commands_send_packet(buffer, ind);
 }
 
-void commands_get_bms_values(int uart_num) {
+void commands_get_bms_values() {
 	int ind = 0;
 	uint8_t buffer[2];
 	buffer[ind++] = COMM_BMS_GET_VALUES;
 	buffer[ind++] = 0;
-	//commands_send_packet(buffer, ind, uart_num);
-	comm_uart_send_packet(buffer, ind, uart_num);
+	commands_send_packet(buffer, ind);
+}
+
+void commands_get_mcconf_temp() {
+    int32_t ind = 0;
+	uint8_t buffer[4];
+    buffer[ind++] = COMM_GET_MCCONF_TEMP;
+	commands_send_packet(buffer, ind);
+}
+
+void commands_set_mcconf_temp(int store, int forward, int reply, int divide_by) {
+
+	if (mcconf.l_current_min_scale == 0) {
+        return;
+    }
+
+    int32_t ind = 0;
+	uint8_t buffer[60];
+
+    buffer[ind++] = COMM_SET_MCCONF_TEMP;
+
+    buffer[ind++] = store; // 0 temporary - 1 store
+    buffer[ind++] = forward; // forward can
+    buffer[ind++] = reply; // reverse can
+    buffer[ind++] = divide_by; // divide by controllers
+
+    buffer_append_float32_auto(buffer, mcconf.l_current_min_scale, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_current_max_scale, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_min_erpm, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_max_erpm, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_min_duty, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_max_duty, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_watt_min, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_watt_max, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_in_current_min, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_in_current_max, &ind);
+
+    commands_send_packet(buffer, ind);
 }
