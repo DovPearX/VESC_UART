@@ -47,4 +47,9 @@ void commands_plot_set_graph(int graph);
 void commands_send_plot_points(float x, float y);
 void commands_send_app_data(unsigned char *data, unsigned int len);
 
+void commands_send_mcconf(COMM_PACKET_ID packet_id, mc_configuration* mcconf,
+    void(*reply_func)(unsigned char* data, unsigned int len));
+void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration* appconf,
+    void(*reply_func)(unsigned char* data, unsigned int len));
+
 #endif /* MAIN_COMMANDS_H_ */
