@@ -294,6 +294,33 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	} break;
 
+	case COMM_GET_MCCONF: {
+		mc_configuration *mcconf = mempools_alloc_mcconf();
+
+		if (confgenerator_deserialize_mcconf(data, mcconf)) {
+			utils_truncate_number(&mcconf->l_current_max_scale , 0.0, 1.0);
+			utils_truncate_number(&mcconf->l_current_min_scale , 0.0, 1.0);
+			mcconf->lo_current_max = mcconf->l_current_max * mcconf->l_current_max_scale;
+			mcconf->lo_current_min = mcconf->l_current_min * mcconf->l_current_min_scale;
+			mcconf->lo_in_current_max = mcconf->l_in_current_max;
+			mcconf->lo_in_current_min = mcconf->l_in_current_min;
+		} else {
+			printf("Warning: Could not set mcconf due to wrong signature");
+		}
+
+		mempools_free_mcconf(mcconf);
+	} break;
+
+	case COMM_GET_APPCONF: {
+		app_configuration *appconf = mempools_alloc_appconf();
+
+		if (!confgenerator_deserialize_appconf(data, appconf)) {
+			printf("Warning: Could not set appconf due to wrong signature");
+		}
+
+		mempools_free_appconf(appconf);
+	} break;
+
 	// Blocking commands
 	case COMM_TERMINAL_CMD:
 	case COMM_PING_CAN:
