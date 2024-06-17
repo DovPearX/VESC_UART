@@ -1,10 +1,5 @@
 #include "Arduino.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
 #include "vesc_uart.h"
-
-
 
 void setup() {
 
