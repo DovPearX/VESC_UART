@@ -20,6 +20,7 @@
 #include "commands.h"
 #include "comm_uart.h"
 #include "utils/packet.h"
+#include "utils/buffer.h"
 #include "driver/uart.h"
 #include <string.h>
 
@@ -167,5 +168,111 @@ void comm_uart_send_packet(unsigned char *data, unsigned int len, int uart_num) 
 	}
 
 	packet_send_packet(data, len, &(m_state[uart_num]->packet_state));
+}
+
+void comm_uart_get_vesc_values(int uart_num) {
+	int ind = 0;
+	uint8_t buffer[2];
+	buffer[ind++] = COMM_GET_VALUES;
+	buffer[ind++] = 0;
+	comm_uart_send_packet(buffer, ind, uart_num);
+}
+
+void comm_uart_get_bms_values(int uart_num) {
+	int ind = 0;
+	uint8_t buffer[2];
+	buffer[ind++] = COMM_BMS_GET_VALUES;
+	buffer[ind++] = 0;
+	comm_uart_send_packet(buffer, ind, uart_num);
+}
+
+void comm_uart_get_mcconf_temp(int uart_num) {
+    int32_t ind = 0;
+	uint8_t buffer[4];
+    buffer[ind++] = COMM_GET_MCCONF_TEMP;
+	comm_uart_send_packet(buffer, ind, uart_num);
+}
+
+void comm_uart_set_mcconf_temp(int store, int forward, int reply, int divide, int uart_num) {
+
+    int32_t ind = 0;
+	uint8_t buffer[60];
+
+    buffer[ind++] = COMM_SET_MCCONF_TEMP;
+
+    buffer[ind++] = store; // 0 temporary - 1 store
+    buffer[ind++] = forward; // forward can
+    buffer[ind++] = reply; // reverse can
+    buffer[ind++] = divide; // divide by controllers
+
+    buffer_append_float32_auto(buffer, mcconf.l_current_min_scale, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_current_max_scale, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_min_erpm, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_max_erpm, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_min_duty, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_max_duty, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_watt_min, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_watt_max, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_in_current_min, &ind);
+	buffer_append_float32_auto(buffer, mcconf.l_in_current_max, &ind);
+
+	comm_uart_send_packet(buffer, ind, uart_num);
+
+}
+
+void comm_uart_set_duty(int uart_num, float duty) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer[send_index++] = COMM_SET_DUTY;
+	buffer_append_int32(buffer, (int32_t)(duty * 100000.0), &send_index);
+	comm_uart_send_packet(buffer, send_index, uart_num);
+}
+
+void comm_uart_set_current(int uart_num, float current) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer[send_index++] = COMM_SET_CURRENT;
+	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+	comm_uart_send_packet(buffer, send_index, uart_num);
+}
+
+void comm_uart_set_current_brake(int uart_num, float current) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer[send_index++] = COMM_SET_CURRENT_BRAKE;
+	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+	comm_uart_send_packet(buffer, send_index, uart_num);
+}
+
+void comm_uart_set_rpm(int uart_num, float rpm) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer[send_index++] = COMM_SET_RPM;
+	buffer_append_int32(buffer, (int32_t)rpm, &send_index);
+	comm_uart_send_packet(buffer, send_index, uart_num);
+}
+
+void comm_uart_set_pos(int uart_num, float pos) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer[send_index++] = COMM_SET_POS;
+	buffer_append_int32(buffer, (int32_t)(pos * 1000000.0), &send_index);
+	comm_uart_send_packet(buffer, send_index, uart_num);
+}
+
+void comm_uart_set_handbrake(int uart_num, float current) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer[send_index++] = COMM_SET_HANDBRAKE;
+	buffer_append_float32(buffer, current, 1e3, &send_index);
+	comm_uart_send_packet(buffer, send_index, uart_num);
+}
+
+void comm_uart_set_current_rel(int uart_num, float current_rel) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer[send_index++] = COMM_SET_CURRENT_REL;
+	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	comm_uart_send_packet(buffer, send_index, uart_num);
 }
 

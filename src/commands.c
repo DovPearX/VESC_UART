@@ -32,14 +32,13 @@
 #include "utils/mempools.h"
 #include "utils/utils.h"
 #include "comm_uart.h"
+#include "comm_can.h"
+#include "bms.h"
+#include "hw.h"
 
 #include "utils/packet.h"
 #include "utils/buffer.h"
 #include "utils/crc.h"
-
-extern bms_values bms;
-extern mc_values values;
-extern mc_configuration mcconf;
 
 // For double precision literals
 #define D(x) 						((double)x##L)
@@ -77,10 +76,10 @@ static void block_task(void *arg) {
 			send_buffer[ind++] = COMM_PING_CAN;
 
 			for (uint8_t i = 0;i < 255;i++) {
-				// HW_TYPE hw_type;
-				// if (comm_can_ping(i, &hw_type)) {
-				// 	send_buffer[ind++] = i;
-				// }
+				HW_TYPE hw_type;
+				if (comm_can_ping(i, &hw_type)) {
+					send_buffer[ind++] = i;
+				}
 			}
 
 			if (send_func_blocking) {
@@ -124,49 +123,117 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	}
 
 	switch (packet_id) {
-	case COMM_BMS_GET_VALUES: {
-			int32_t ind = 0;
+	case COMM_FW_VERSION: {
+		int32_t ind = 0;
+		uint8_t send_buffer[65];
+		send_buffer[ind++] = COMM_FW_VERSION;
+		send_buffer[ind++] = FW_VERSION_MAJOR;
+		send_buffer[ind++] = FW_VERSION_MINOR;
 
-			bms.v_tot = buffer_get_float32(data, 1000000.0, &ind);
-			bms.v_charge = buffer_get_float32(data, 1000000.0, &ind);
-			bms.i_in = buffer_get_float32(data, 1000000.0, &ind);
-			bms.i_in_ic = buffer_get_float32(data, 1000000.0, &ind);
-			bms.ah_cnt = buffer_get_float32(data, 1000.0, &ind);
-			bms.wh_cnt = buffer_get_float32(data, 1000.0, &ind);
+		strcpy((char*)(send_buffer + ind), HW_NAME);
+		ind += strlen(HW_NAME) + 1;
 
-			for (int i = 0;i < bms.cell_num;i++) {
-			bms.v_cell[i] = buffer_get_float16(data, 1000, &ind);
-			}
+	    ind += 6;
+		memset(send_buffer + ind, 0, 6);
+		ind += 6;
 
-			for(int i = 0;i < bms.cell_num;i++) {
-				bms.bal_state[i] = (data[ind++] != 0);
-			}
+		send_buffer[ind++] = 0;
+		send_buffer[ind++] = 0;
 
-			bms.temp_adc_num = buffer_get_float16(data, 1000, &ind);
+		send_buffer[ind++] = HW_TYPE_CUSTOM_MODULE;
+		send_buffer[ind++] = 0; // One custom config
 
-			for(int i = 0;i < bms.temp_adc_num;i++) {
-				bms.temps_adc[i] = buffer_get_float16(data, 100, &ind);
-			}
+		send_buffer[ind++] = 0; // No phase filters
+		send_buffer[ind++] = 0; // No HW QML
 
-			bms.temp_ic = buffer_get_float16(data, 100, &ind);
+	    send_buffer[ind++] = 0;
 
-			bms.temp_hum = buffer_get_float16(data, 100, &ind);
-			bms.hum = buffer_get_float16(data, 100, &ind);
+		send_buffer[ind++] = 0; // No NRF flags
 
-			bms.temp_max_cell = buffer_get_float16(data, 100, &ind);
+		strcpy((char*)(send_buffer + ind), FW_NAME);
+		ind += strlen(FW_NAME) + 1;
 
-			bms.soc = buffer_get_float16(data, 1000, &ind);
-			bms.soh = buffer_get_float16(data, 1000, &ind);
+		send_buffer[ind++] = 0;
 
-			bms.can_id = data[ind++];
-			
-			bms.ah_cnt_chg_total = buffer_get_float32_auto(data, &ind);
-			bms.wh_cnt_chg_total = buffer_get_float32_auto(data, &ind);
-			bms.ah_cnt_dis_total = buffer_get_float32_auto(data, &ind);
-			bms.wh_cnt_dis_total = buffer_get_float32_auto(data, &ind);
+		reply_func(send_buffer, ind);
+	} break;
 
-			bms.pressure = buffer_get_float16(data, 0.1, &ind);
+	case COMM_FORWARD_CAN:
+		send_func_can_fwd = reply_func;
+		comm_can_send_buffer(data[0], data + 1, len - 1, 0);
+		break;
 
+	case COMM_CAN_FWD_FRAME: {
+		int32_t ind = 0;
+		uint32_t id = buffer_get_uint32(data, &ind);
+		bool is_ext = data[ind++];
+
+		if (is_ext) {
+			comm_can_transmit_eid(id, data + ind, len - ind);
+		} else {
+			comm_can_transmit_sid(id, data + ind, len - ind);
+		}
+		} break;
+
+	case COMM_IO_BOARD_GET_ALL: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+
+		io_board_adc_values *adc_1_4 = comm_can_get_io_board_adc_1_4_id(id);
+		io_board_adc_values *adc_5_8 = comm_can_get_io_board_adc_5_8_id(id);
+		io_board_digial_inputs *digital_in = comm_can_get_io_board_digital_in_id(id);
+
+		if (!adc_1_4 && !adc_5_8 && !digital_in) {
+			break;
+		}
+
+		uint8_t send_buffer[70];
+		ind = 0;
+		send_buffer[ind++] = packet_id;
+		buffer_append_int16(send_buffer, id, &ind);
+
+		if (adc_1_4) {
+			send_buffer[ind++] = 1;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[0], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[1], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[2], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[3], 1e2, &ind);
+		}
+
+		if (adc_5_8) {
+			send_buffer[ind++] = 2;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[0], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[1], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[2], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[3], 1e2, &ind);
+		}
+
+		if (digital_in) {
+			send_buffer[ind++] = 3;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_uint32(send_buffer, (digital_in->inputs >> 32) & 0xFFFFFFFF, &ind);
+			buffer_append_uint32(send_buffer, (digital_in->inputs >> 0) & 0xFFFFFFFF, &ind);
+		}
+
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_IO_BOARD_SET_PWM: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		int channel = buffer_get_int16(data, &ind);
+		float duty = buffer_get_float32_auto(data, &ind);
+		comm_can_io_board_set_output_pwm(id, channel, duty);
+	} break;
+
+	case COMM_IO_BOARD_SET_DIGITAL: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		int channel = buffer_get_int16(data, &ind);
+		bool on = data[ind++];
+		comm_can_io_board_set_output_digital(id, channel, on);
 	} break;
 
 	case COMM_GET_VALUES: {
@@ -197,11 +264,21 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	} break;
 
+	case COMM_BMS_GET_VALUES:
+	case COMM_BMS_SET_CHARGE_ALLOWED:
+	case COMM_BMS_SET_BALANCE_OVERRIDE:
+	case COMM_BMS_RESET_COUNTERS:
+	case COMM_BMS_FORCE_BALANCE:
+	case COMM_BMS_ZERO_CURRENT_OFFSET: {
+		bms_process_cmd(data - 1, len + 1, reply_func);
+		break;
+	}
+
 	case COMM_GET_MCCONF_TEMP: {
 			int32_t ind = 0;
 
-			mcconf.l_current_min_scale 		= buffer_get_float32_auto(data, &ind); 	// mcconf->l_current_min_scale
-			mcconf.l_current_max_scale 		= buffer_get_float32_auto(data, &ind); 	// mcconf->l_current_max_scale
+			mcconf.l_current_min_scale  = buffer_get_float32_auto(data, &ind); 	// mcconf->l_current_min_scale
+			mcconf.l_current_max_scale 	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_current_max_scale
 			mcconf.l_min_erpm 		    = buffer_get_float32_auto(data, &ind); 	// mcconf->l_min_erpm
 			mcconf.l_max_erpm 	    	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_max_erpm
 			mcconf.l_min_duty 	    	= buffer_get_float32_auto(data, &ind); 	// mcconf->l_min_duty
@@ -313,54 +390,4 @@ void commands_send_app_data(unsigned char *data, unsigned int len) {
 	index += len;
 	commands_send_packet(send_buffer_global, index);
 	mempools_free_packet_buffer(send_buffer_global);
-}
-
-void commands_get_vesc_values(int uart_num) {
-	int ind = 0;
-	uint8_t buffer[2];
-	buffer[ind++] = COMM_GET_VALUES;
-	buffer[ind++] = 0;
-	comm_uart_send_packet(buffer, ind, uart_num);
-}
-
-void commands_get_bms_values(int uart_num) {
-	int ind = 0;
-	uint8_t buffer[2];
-	buffer[ind++] = COMM_BMS_GET_VALUES;
-	buffer[ind++] = 0;
-	comm_uart_send_packet(buffer, ind, uart_num);
-}
-
-void commands_get_mcconf_temp(int uart_num) {
-    int32_t ind = 0;
-	uint8_t buffer[4];
-    buffer[ind++] = COMM_GET_MCCONF_TEMP;
-	comm_uart_send_packet(buffer, ind, uart_num);
-}
-
-void commands_set_mcconf_temp(int store, int forward, int reply, int uart_num) {
-
-    int32_t ind = 0;
-	uint8_t buffer[60];
-
-    buffer[ind++] = COMM_SET_MCCONF_TEMP;
-
-    buffer[ind++] = store; // 0 temporary - 1 store
-    buffer[ind++] = forward; // forward can
-    buffer[ind++] = reply; // reverse can
-    buffer[ind++] = 0; // divide by controllers
-
-    buffer_append_float32_auto(buffer, mcconf.l_current_min_scale, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_current_max_scale, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_min_erpm, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_max_erpm, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_min_duty, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_max_duty, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_watt_min, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_watt_max, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_in_current_min, &ind);
-	buffer_append_float32_auto(buffer, mcconf.l_in_current_max, &ind);
-
-	comm_uart_send_packet(buffer, ind, uart_num);
-
 }

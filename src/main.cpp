@@ -10,9 +10,9 @@ void setup() {
 
     Serial.begin(9600);
 
-    vesc_uart_init(17, 16, 2, 115200);
+    vesc_init();
 
-    vTaskDelay(1000);
+    delay(100);
 
     mcconf.l_current_min_scale = 0.5;
     mcconf.l_current_max_scale = 0.2;
@@ -20,7 +20,7 @@ void setup() {
     printf("SET l_current_min_scale: %.2f\n", mcconf.l_current_min_scale);
     printf("SET l_current_max_scale: %.2f\n", mcconf.l_current_max_scale);
 
-    commands_set_mcconf_temp(0, 0, 0, 2);
+    comm_uart_set_mcconf_temp(0, 0, 0, 0, 2);
 
 }
 
@@ -28,7 +28,7 @@ void loop() {
 
     vTaskDelay(500);
 
-    commands_get_vesc_values(2);
+    comm_uart_get_vesc_values(2);
 
     //Serial.println(values.v_in);    
 
